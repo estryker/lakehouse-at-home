@@ -1,0 +1,101 @@
+For setup:
+- ran ./lakehouse setup 
+- ran the curl command to install poetry: curl -sSL https://install.python-poetry.org | python3 -
+  -- added the poetry install location to PATH in .bashrc 
+- started Rancher Desktop to start the docker daemon
+- connected to postgress with the pg command and created the lakehouse user with lakehouse password and 
+  created iceberg_catalog database with lakehouse as the owner
+   postgres=# CREATE USER lakehouse with PASSWORD 'lakehouse';
+  postgres=# CREATE DATABASE iceberg_catalog OWNER lakehouse
+- edit the .env file with the pg info 
+- run ./lakehouse start all 
+ ** I needed to chmod 775 on data and ivy-cache as things started
+
+- Everything ran! but I want to run unity-catalog as well
+
+- edit config/spark/spark-defaults.conf with lakehouse uname / pword
+
+- Using SeaweedFS for AWS compatible storage from the instructions here:  https://github.com/lisancao/lakehouse-at-home/blob/master/docs/getting-started/installation.md
+
+  and here https://github.com/seaweedfs/seaweedfs
+
+docker run -d --name seaweedfs -p 8333:8333 -p 9333:9333 \
+  chrislusf/seaweedfs server -s3
+
+AWS_ACCESS_KEY_ID=admin \
+AWS_SECRET_ACCESS_KEY=secret \
+S3_BUCKET=my-bucket \
+./weed mini -dir=/data
+
+
+docker run --rm -d --name seaweedfs -p 8333:8333 -p 9333:9333 \
+-e AWS_ACCESS_KEY_ID=admin \
+-e AWS_SECRET_ACCESS_KEY=secret \
+-e S3_BUCKET=lakehouse \
+chrislusf/seaweedfs server -s3
+
+
+- in docker-compose-unity-catalog.yml, updated image to  image: unitycatalog/unitycatalog:v0.5.0
+  and ran docker pull unitycatalog/unitycatalog:v0.5.0
+  **Now the command ./lakehouse start unity-catalog works! 
+
+- run ./lakehouse start airflow  to start AirFlow 
+
+- Note that I had to run ./lakehouse start spark --version 4.1  so that the UI would run on port 8082 
+
+- Note that to use the Unity Catalog with Spark, update the spark.conf (according to https://github.com/lisancao/lakehouse-at-home/blob/master/docs/guides/unity-catalog.md)
+spark.sql.catalog.iceberg                 org.apache.iceberg.spark.SparkCatalog
+spark.sql.catalog.iceberg.catalog-impl    org.apache.iceberg.rest.RESTCatalog
+spark.sql.catalog.iceberg.uri             http://localhost:8080/api/2.1/unity-catalog/iceberg
+spark.sql.catalog.iceberg.warehouse       unity
+spark.sql.catalog.iceberg.token           not_used
+
+
+Now on to the sample scripts in the repo to create and load test data https://github.com/lisancao/lakehouse-at-home/blob/master/notebooks/spark41_declarative_pipeline.ipynb
+
+3. Generating Iceberg load script...                                                                                                                                                          
+   - data/load_to_iceberg.py                                                                                                                                                                  
+                                                                                                                                                                                              
+                                                                                                                                                                                              
+============================================================                                                                                                                                  
+GENERATION COMPLETE                                                                                                                                                                           
+============================================================                                                                                                                                  
+                                                                                                                                                                                              
+Dimensions: data/dimensions/                                                                   
+Events:     data/events/orders_90d.parquet                                                                                                                                                    
+Orders:     3,770,164                                                                          
+Events:     102,087,190                                                                                                                                                                       
+File size:  6987.7 MB                                                                                                                                                                         
+                                                                                                                                                                                              
+Next steps:
+  1. Load to Iceberg:  spark-submit data/load_to_iceberg.py
+  2. Stream to Kafka:  ./lakehouse testdata stream --speed 60
+
+
+**Note: to run #1, use docker exec once the spark master container is running:  docker exec spark-master-41 /opt/spark/bin/spark-submit   /data/load_to_iceberg.py
+
+
+------------
+spark submit jobs fail with: 
+
+26/07/08 00:20:41 ERROR SparkContext: Error initializing SparkContext.                                                                                                                        
+java.io.FileNotFoundException: File file:/opt/spark-data/logs does not exist                                                                                                                  
+        at org.apache.hadoop.fs.RawLocalFileSystem.deprecatedGetFileStatus(RawLocalFileSystem.java:980)
+
+
+Based on the errors and execing in to the spark-master-41 container, 
+tried creating a logs dir:
+ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir spark
+ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir spark/logs
+
+Note the docker-compose file has the following config:
+    volumes:
+      - /data/spark:/opt/spark-data
+      - ./config/spark:/opt/spark/conf
+      - ./notebooks:/notebooks
+      - ./jars:/opt/spark/jars-extra
+      - ./scripts:/scripts
+      - ./ivy-cache:/root/.ivy2
+      - ./data:/data
+ 
+*** Note that I had to add a '.' before /data in the volumes sections for the worker and the master
