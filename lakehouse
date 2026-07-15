@@ -1,6 +1,9 @@
 #!/bin/bash
 
-set -e
+# Note: not using set -e so that check_container functions don't kill the script if the underlying service fails. 
+#       ** If we do in fact want the set -e to work, then we should wrap the 'check_container' command in an 'if', and 
+#       possibly put the display logic elsewhere 
+# set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"

@@ -41,7 +41,7 @@ chrislusf/seaweedfs server -s3
 
 - run ./lakehouse start airflow  to start AirFlow 
 
-- Note that I had to run ./lakehouse start spark --version 4.1  so that the UI would run on port 8082 
+- Note that I had to run ./lakehouse start spark --version 4.1  so that the UI would run on port 8082 (**This didn't seem to be the case for the second iteration)
 
 - Note that to use the Unity Catalog with Spark, update the spark.conf (according to https://github.com/lisancao/lakehouse-at-home/blob/master/docs/guides/unity-catalog.md)
 spark.sql.catalog.iceberg                 org.apache.iceberg.spark.SparkCatalog
@@ -52,6 +52,9 @@ spark.sql.catalog.iceberg.token           not_used
 
 
 Now on to the sample scripts in the repo to create and load test data https://github.com/lisancao/lakehouse-at-home/blob/master/notebooks/spark41_declarative_pipeline.ipynb
+
+I ran:  ./lakehouse testdata generate --days 90 (this takes a little while) 
+
 
 3. Generating Iceberg load script...                                                                                                                                                          
    - data/load_to_iceberg.py                                                                                                                                                                  
@@ -99,3 +102,12 @@ Note the docker-compose file has the following config:
       - ./data:/data
  
 *** Note that I had to add a '.' before /data in the volumes sections for the worker and the master
+
+-------------
+
+Next steps
+- re-create setup and get everything working, commiting changes as you go
+- update the .env file and the docker-compose-spark41.yml to set variables so that we can solve the spark master / worker registration problem 
+- do the data ingest piece
+- get the status thing working so that Spark 4.1 will be displayed
+- 
