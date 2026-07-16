@@ -88,8 +88,8 @@ java.io.FileNotFoundException: File file:/opt/spark-data/logs does not exist
 
 Based on the errors and execing in to the spark-master-41 container, 
 tried creating a logs dir:
-ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir spark
-ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir spark/logs
+ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir data/spark
+ethan@ethan-vivobook:~/lakehouse-at-home/data$ mkdir data/spark/logs
 
 Note the docker-compose file has the following config:
     volumes:
