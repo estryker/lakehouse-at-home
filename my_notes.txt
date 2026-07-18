@@ -39,6 +39,15 @@ chrislusf/seaweedfs server -s3
   and ran docker pull unitycatalog/unitycatalog:v0.5.0
   **Now the command ./lakehouse start unity-catalog works! 
 
+** updated the s3 portion of the config/unity-catalog/server.properties file:
+s3.bucketPath.0=s3://lakehouse/warehouse
+s3.region.0=us-east-1
+s3.accessKey.0=admin
+s3.secretKey.0=secret
+# Custom endpoint for SeaweedFS (comment out for real AWS S3)
+s3.endpoint.0=http://localhost:8333
+
+
 - run ./lakehouse start airflow  to start AirFlow 
 
 - Note that I had to run ./lakehouse start spark --version 4.1  so that the UI would run on port 8082 (**This didn't seem to be the case for the second iteration)
@@ -108,6 +117,22 @@ Note the docker-compose file has the following config:
 Next steps
 - re-create setup and get everything working, commiting changes as you go
 - update the .env file and the docker-compose-spark41.yml to set variables so that we can solve the spark master / worker registration problem 
+  ** This is fixed with a clean install. there may have been old containers lying around. 
+  ** Potential cleanup is still to set variables in .env that get used in the docker-compose-spark-41.yml. There is some hard coding that is there
 - do the data ingest piece
+  * The issue is that the UnityCatalog REST endpoint isn't allowing the POST to it. Need to fix
+  1. Loading dimension tables...                                                                 
+26/07/16 13:07:06 WARN AuthManagers: Inferring rest.auth.type=oauth2 since property token was provided. Please explicitly set rest.auth.type to avoid this warning.
+26/07/16 13:07:07 WARN OAuth2Manager: Iceberg REST client is missing the OAuth2 server URI configuration and defaults to http://localhost:8080/api/2.1/unity-catalog/iceberg/v1/oauth/tokens. 
+This automatic fallback will be removed in a future Iceberg release. It is recommended to configure the OAuth2 endpoint using the 'oauth2-server-uri' property to be prepared. This warning wi
+ll disappear if the OAuth2 endpoint is explicitly configured. See https://github.com/apache/iceberg/issues/10537
+Traceback (most recent call last):                                                             
+  File "/data/load_to_iceberg.py", line 17, in <module>            
+    spark.read.parquet(f"{dims_path}/categories.parquet").write.mode("overwrite").saveAsTable("iceberg.bronze.dim_categories")
+  File "/opt/spark/python/lib/pyspark.zip/pyspark/sql/readwriter.py", line 1868, in saveAsTable 
+  File "/opt/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1362, in __call__
+  File "/opt/spark/python/lib/pyspark.zip/pyspark/errors/exceptions/captured.py", line 269, in deco
+pyspark.errors.exceptions.captured.UnsupportedOperationException: Server does not support endpoint: POST /v1/{prefix}/namespaces/{namespace}/tables/{table}
+
 - get the status thing working so that Spark 4.1 will be displayed
-- 
+  ** Fixed this by removing the 'set -e' in the ./lakehouse shell script. Not sure if that was intentional to have that flag set
