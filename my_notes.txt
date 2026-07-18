@@ -136,3 +136,31 @@ pyspark.errors.exceptions.captured.UnsupportedOperationException: Server does no
 
 - get the status thing working so that Spark 4.1 will be displayed
   ** Fixed this by removing the 'set -e' in the ./lakehouse shell script. Not sure if that was intentional to have that flag set
+
+
+---------------------------------------------------------------
+Unity Catalog issues:
+From the spark code that is attempting to write to the bronze table, we get the errors that the "Server does not support endpoint: POST /v1/{prefix} ..." etc
+
+Question:  why is it trying v1 API? online suggests making the namespace separately. 
+lakehouse-at-home docs say: 
+$ curl -X POST http://localhost:8080/api/2.1/unity-catalog/schemas \ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "bronze",
+    "catalog_name": "unity"
+  }'
+{"name":"bronze","catalog_name":"unity","comment":null,"properties":{},"full_name":"unity.bronze","owner":null,"created_at":1784381852118,"created_by":null,"updated_at":1784381852118,"updated_by":null,"schema_id":"57a73747-761a-456e-b15a-4011e5aa75e2","storage_root":null,"storage_location":null}
+
+But spark is using v1.  Online Google helps says to use v1 but I get a 404 Not Found error
+
+
+$ curl -X POST "http://localhost:8080/api/v1/unity/schemas" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my_schema",
+    "catalog_name": "unity"
+  }'
+Status: 404
+Description: Not Found
+
